@@ -8,7 +8,7 @@ from typing import Optional, Dict, Union
 from torch.nn import functional as F
 from torch.distributions import Bernoulli
 
-from tabula.model.encoding.encoder import FeatureEncoder
+from tabula.embedder.embedder import FeatureEmbedder
 from tabula.model.transfomer.activation import ReGLU
 from tabula.model.transfomer.attention import AdditiveAttention, MutilHeadSelfAttention, FlashAttention
 from tabula.model.transfomer.head import ContrastiveHead, ReconstructionHead, SupervisedHead

@@ -29,70 +29,48 @@ Tabula/
 ├── tutorials/                 # Usage examples for downstream task
 
 ├── requirements.txt           # Python dependencies  
-├──README.md                  # Project description file
+├── README.md                  # Project description file
 └── LICENSE  
 
 ```
 
-## **Requirements**
+## **Installation**
 - CUDA >= 11.7
 - Python >= 3.9
 - flash-attn >= 2.3.5
 - mpi4py >= 3.1.4
-- Required dependencies are listed in [requirements.txt](requirements.txt).
+- Required dependencies are listed in [requirements.txt](requirements.txt)
+
+Clone the repository:
+```bash
+$ git clone this-repo-url
+$ cd tabula
+```
 
 Create your conda conda environment:
 ```bash
-conda install -n tabula python=3.9
+$ conda install -n tabula python=3.9
 ```
-Install the torch version:
+Install the torch:
 ```bash
-pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
+$ pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
 ```
 Install dependencies:
 ```bash
-pip install -r requirements.txt
+$ pip install -r requirements.txt
 ```
 To install mpi4py, follow these steps:
 ```bash
-conda install mpi4py==3.1.4
+$ conda install mpi4py==3.1.4
 ```
 
-To install mpi4py, follow these steps, (For more information, check out [flash-attention](https://github.com/Dao-AILab/flash-attention)):
+To install flash-attention2, follow these steps, (For more information, check out [flash-attention](https://github.com/Dao-AILab/flash-attention)):
 ```bash
-MAX_JOBS=4 pip install flash-attn==2.3.5 --no-build-isolation
+$ MAX_JOBS=4 pip install flash-attn==2.3.5 --no-build-isolation
 ```
 
-## **Quick Start Pretrain**
-1. Download and preprocess your single-cell datasets and place them in the `resource/dataset` directory. The [demo dataset](1) can be downloaded.
-2. Configure the all configuration of [framework.yaml](./tabula/framework.yaml)
-3. Configure the script file, federated learning demo is [job.sh](./tabula/job.sh), There are 3 clients here, each occupying 1 GPU:
-   ```bash
-    #!/bin/bash
-    #SBATCH --job-name=test
-    #SBATCH --output=test.out
-    #SBATCH --nodes=1
-    #SBATCH --ntasks-per-node=3
-    #SBATCH --cpus-per-task=4
-    #SBATCH --gpus=3
-
-    # NCCL SETTING 
-    export NCCL_BLOCKING_WAIT=1
-    export NCCL_IB_PCI_RELAXED_ORDERING=1
-    export NCCL_IB_RETRY_CNT=13
-
-    # CUDA ENVIRONMENT 
-    module load cuda/11.7
-
-    # GET HOST ADDRESS
-    srun hostname | sort -s | sort -n | sed 's/\..*$//' > hostsfile
-
-    # MPIRUN 3 CLIENTS
-    mpirun -np 3 -v -machinefile hostsfile python main.py
-
-   ```
 ## **Quick Start Tutorial**
-
+Please see our example code in [tutorials](./tutorials/).
 ## Tabula Development Process
 - Follow feature-staging-main review process
     - create a specific branch for new feature
@@ -106,14 +84,14 @@ MAX_JOBS=4 pip install flash-attn==2.3.5 --no-build-isolation
 - We use `black` to automatically format code in a standardized format. To ensure that any code changes are up to standard, use `pre-commit` as such.
 ```
 # Run the following two lines ONCE.
-pip install pre-commit
-pre-commit install
-pre-commit run --all-files
+$ pip install pre-commit
+$ pre-commit install
+$ pre-commit run --all-files
 ```
 Then, all future commits will call `black` automatically to format the code. Any code that does not follow the standard will cause a check to fail.
 
 ## **Contact**
-## **License**
+For questions, feedback, or collaboration opportunities, please contact Xiaojie Qiu at xiaojie@stanford.edu and Jiayuan Ding at jiayuand@usc.edu.
 
 
 

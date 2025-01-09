@@ -2,7 +2,7 @@ Model:
   # tokenizer
   padding_id: 60694     # the <pad> id in vocab  60694
   padding_value: 0.0    # the value at the position <pad>
-  # encoder
+  # embedder
   in_feature: 1200            # the fixed length of the gene values sequence
   embedding_in_feature: 60697 # the size of vocab 
   d_token: 192                # the hidden dimension of encoding
@@ -27,24 +27,24 @@ Finetune:
   objective: 'both'   # Options: [reconstruction, contrastive, both]
 
   method: 'heavy'     # Options: [light, heavy]. For heavy, need to set the max_epochs and patience
-  light_epochs: 30   # maximum epoch for light finetune
-  max_epochs: 5000  # maximum epoch for heavy finetune
+  light_epochs: 30    # maximum epoch for light finetune
+  max_epochs: 5000    # maximum epoch for heavy finetune
   patience: 200       # early stop patience for heavy finetune
   learning_rate: 0.0001
   weight_decay: 0.95
-  gradient_clip_val: 0.5  # default algorithm is clip_grad_norm
+  gradient_clip_val: 0.5    # default algorithm is clip_grad_norm
 
   explicit_zero_prob: True  # the probability of the expression being zero, approaching 0 or 1
-  do_mgm: True  # loss for masked gene modeling
-  do_cmgm: True  # loss for cell context-aware masked gene modeling
+  do_mgm: True              # loss for masked gene modeling
+  do_cmgm: True             # loss for cell context-aware masked gene modeling
   cmgm_decoder_style: 'inner product'  # style of cmgm decoder, choice from "inner product", "concat query", "sum query"
-  mask_rate: 0.4  # the rate of masking for mgm and cmgm objectives
-  mask_value: -1  # the value of masking for mgm and cmgm objectives
-  do_dab: True  # loss for batch correction (domain adaptation)
-  dab_weight: 1.0  # weight for dab loss
-  do_rcs: True  # reconstruction loss align to the pre-training stage
-  embed_style: 'cls'  # the style of get cell embedding, choice from "cls", "avg-pool", "w-pool"
+  mask_rate: 0.4            # the rate of masking for mgm and cmgm objectives
+  mask_value: -1            # the value of masking for mgm and cmgm objectives
+  do_dab: True              # loss for batch correction (domain adaptation)
+  dab_weight: 1.0           # weight for dab loss
+  do_rcs: True              # reconstruction loss align to the pre-training stage
+  embed_style: 'cls'        # the style of get cell embedding, choice from "cls", "avg-pool", "w-pool"
 
-  augmentation_mode: 'corruption'  # or identical
+  augmentation_mode: 'corruption'  # 'corruption' or 'identical'
   corruption_rate: 0.6
   temperature: 0.07

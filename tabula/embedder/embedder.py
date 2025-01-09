@@ -3,9 +3,9 @@ import torch.nn as nn
 from torch import Tensor
 
 
-class GeneEncoder(nn.Module):
+class GeneEmbedder(nn.Module):
     """
-    Encoder gene id
+    Embedder gene id
     Parameters:
         embedding_in_feature: int
             the len of vocab
@@ -25,9 +25,9 @@ class GeneEncoder(nn.Module):
         return x
 
 
-class ValueEncoder(nn.Module):
+class ValueEmbedder(nn.Module):
     """
-    Encoder expression value
+    Embedder expression value
     Parameters:
         in_feature: int
             the number of column(gene)
@@ -55,18 +55,18 @@ class ValueEncoder(nn.Module):
         return x
 
 
-class FeatureEncoder(nn.Module):
+class FeatureEmbedder(nn.Module):
     """
     Gene id embedder with Expression value embedder
     """
     def __init__(self, in_feature, embedding_in_feature, d_token=192):
         super().__init__()
-        self.gene_encoder = GeneEncoder(embedding_in_feature, d_token)
-        self.value_encoder = ValueEncoder(in_feature, d_token)
+        self.gene_embedder = GeneEmbedder(embedding_in_feature, d_token)
+        self.value_embedder = ValueEmbedder(in_feature, d_token)
 
     def forward(self, gene, value):
-        gene = self.gene_encoder(gene)
-        value = self.value_encoder(value)
+        gene = self.gene_embedder(gene)
+        value = self.value_embedder(value)
 
         x = gene + value
 
