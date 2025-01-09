@@ -12,7 +12,6 @@ class GeneEmbedder(nn.Module):
         d_token: int
             the dimension of token
     """
-
     def __init__(self, embedding_in_feature, d_token):
         super().__init__()
         self.embedding = nn.Embedding(embedding_in_feature, d_token)

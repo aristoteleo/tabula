@@ -29,7 +29,7 @@ Finetune:
   method: 'heavy'     # Options: [light, heavy]. For heavy, need to set the max_epochs and patience
   light_epochs: 30    # maximum epoch for light finetune
   max_epochs: 5000    # maximum epoch for heavy finetune
-  patience: 200       # early stop patience for heavy finetune
+  patience: 50        # early stop patience for heavy finetune
   learning_rate: 0.0001
   weight_decay: 0.95
   gradient_clip_val: 0.5    # default algorithm is clip_grad_norm

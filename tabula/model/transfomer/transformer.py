@@ -5,7 +5,6 @@ import torch.nn as nn
 from typing import cast
 from torch import Tensor
 from typing import Optional, Dict, Union
-from torch.nn import functional as F
 from torch.distributions import Bernoulli
 
 from tabula.embedder.embedder import FeatureEmbedder
@@ -140,13 +139,13 @@ class MGMDecoder(nn.Module):
     def forward(self, x) -> Dict[str, Tensor]:
         """x is the output of the transformer, (batch, seq_len, d_model)"""
         pred_value = self.fc(x).squeeze(-1)
-        
+
         if not self.explicit_zero_prob:
             return dict(pred=pred_value)
         zero_logits = self.zero_logit(x).squeeze(-1)
         zero_probs = torch.sigmoid(zero_logits)
         return dict(pred=pred_value, zero_probs=zero_probs)
-        
+
 
 class RCSCDecoder(nn.Module):
     """
@@ -509,9 +508,9 @@ class TabulaTransformer(nn.Module):
         """
         super().__init__()
         self.prefix = "TabulaTransformer"
-        self.feature_tokenizer = FeatureEncoder(in_feature=in_feature,
-                                                embedding_in_feature=embedding_in_feature,
-                                                d_token=d_token)
+        self.feature_tokenizer = FeatureEmbedder(in_feature=in_feature,
+                                                 embedding_in_feature=embedding_in_feature,
+                                                 d_token=d_token)
         self.bn = nn.BatchNorm1d(d_token, eps=6.1e-5)
         self.cls = AppendCLS(d_token=d_token) if cls else nn.Identity()
         self.transformer = Transformer(d_token=d_token,
@@ -531,20 +530,19 @@ class TabulaTransformer(nn.Module):
             self.batch_encoder = BatchLabelEncoder(num_embeddings=n_batch, embedding_dim=d_token)
 
         self.n_batch = n_batch
-        logger.info("Using simple batchnorm instead of domain specific batchnorm")
         self.bn = nn.BatchNorm1d(d_token, eps=6.1e-5)
 
         self.explicit_zero_prob = explicit_zero_prob
         self.embed_style = embed_style
 
         self.do_mgm = do_mgm
-        if self.do_mgm: 
+        if self.do_mgm:
             self.mgm_decoder = MGMDecoder(d_model=d_token,
                                           explicit_zero_prob=self.explicit_zero_prob,
                                           use_batch_labels=enable_batch)
 
         self.do_cmgm = do_cmgm
-        if self.do_cmgm:  
+        if self.do_cmgm:
             self.cmgm_decoder = CMGMDecoder(d_model=d_token,
                                             arch_style=cmgm_decoder_style,
                                             explicit_zero_prob=self.explicit_zero_prob,
@@ -615,7 +613,7 @@ class TabulaTransformer(nn.Module):
 
         cell_embed = self._get_cell_embed(output['transformer'], self.embed_style)
         output['cell_embed'] = cell_embed
-        
+
         if head == 'supervised':
             output['supervised'] = self.heads[head](cell_embed)
         elif head == 'contrastive':
@@ -674,7 +672,7 @@ class TabulaTransformer(nn.Module):
         elif cell_embed_style == "w-pool":
             raise NotImplementedError
         return output
-    
+
     def _get_gene_embed(self, x: Tensor) -> Tensor:
         """
         Get the cell embedding from the output of the transformer.
@@ -682,7 +680,7 @@ class TabulaTransformer(nn.Module):
             x: Tensor, shape [batch_size, seq_len, d_model]
         """
         output = torch.mean(x, dim=0)
-        
+
         return output
 
     @property
