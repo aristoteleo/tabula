@@ -1,0 +1,50 @@
+Model:
+  # tokenizer
+  padding_id: 60694     # the <pad> id in vocab  60694
+  padding_value: 0.0    # the value at the position <pad>
+  # encoder
+  in_feature: 1200            # the fixed length of the gene values sequence
+  embedding_in_feature: 60697 # the size of vocab 
+  d_token: 192                # the hidden dimension of encoding
+  # transformer
+  contrastive_out_feature: 128      # the feature dimension of contrastive loss
+  reconstruction_out_feature: 1200  # the number of reconstruction feature, it is equal to in_feature
+  supervised_out_feature: 0         # the number of cell type  
+  n_blocks: 3                       # the number of the attention block
+  attention_n_heads: 8              # the number of the attention head
+  attention_dropout: 0.2            # the dropout rate of attention
+  ffn_d_hidden: 192                 # the dimension of feedforward
+  ffn_dropout: 0.1                  # the dropout rate of feedforward
+  residual_dropout: 0.0             # the dropout rate of residual
+  cls: True                         # whether append cls
+  pre_normalization: True           # whether normalization before residual
+  global_token: True                # whether use global token
+
+Finetune:
+  pretrained_backbone: "FlashAttention"           # "FastFormer" or "FlashAttention"
+  save_folder: './finetune_out'
+  finetune_task: 'integration' 
+  objective: 'both'   # Options: [reconstruction, contrastive, both]
+
+  method: 'heavy'     # Options: [light, heavy]. For heavy, need to set the max_epochs and patience
+  light_epochs: 30   # maximum epoch for light finetune
+  max_epochs: 5000  # maximum epoch for heavy finetune
+  patience: 200       # early stop patience for heavy finetune
+  learning_rate: 0.0001
+  weight_decay: 0.95
+  gradient_clip_val: 0.5  # default algorithm is clip_grad_norm
+
+  explicit_zero_prob: True  # the probability of the expression being zero, approaching 0 or 1
+  do_mgm: True  # loss for masked gene modeling
+  do_cmgm: True  # loss for cell context-aware masked gene modeling
+  cmgm_decoder_style: 'inner product'  # style of cmgm decoder, choice from "inner product", "concat query", "sum query"
+  mask_rate: 0.4  # the rate of masking for mgm and cmgm objectives
+  mask_value: -1  # the value of masking for mgm and cmgm objectives
+  do_dab: True  # loss for batch correction (domain adaptation)
+  dab_weight: 1.0  # weight for dab loss
+  do_rcs: True  # reconstruction loss align to the pre-training stage
+  embed_style: 'cls'  # the style of get cell embedding, choice from "cls", "avg-pool", "w-pool"
+
+  augmentation_mode: 'corruption'  # or identical
+  corruption_rate: 0.6
+  temperature: 0.07
