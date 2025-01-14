@@ -20,7 +20,7 @@ class GeneVocab(Vocab):
         self,
         gene_list_or_vocab: Union[List[str], Vocab],
         specials: Optional[List[str]] = None,
-        special_first: bool = True,
+        special_first: Optional[bool] = True,
         default_token: Optional[str] = "<pad>",
     ) -> None:
         """
@@ -59,8 +59,22 @@ class GeneVocab(Vocab):
     @classmethod
     def from_file(cls, file_path: Union[Path, str]) -> Self:
         """
-        Load the vocabulary from a file. The file should be either a pickle or a
-        json file of token to index mapping.
+        Load a GeneVocab instance from a file.
+    
+        This method supports loading vocabularies stored in either pickle (.pkl)
+        or JSON (.json) formats. Depending on the file type, it either deserializes
+        the file or constructs a vocabulary from a token-to-index mapping.
+    
+        Args:
+            file_path (Union[Path, str]): Path to the file containing the vocabulary.
+                Must be a .pkl or .json file.
+    
+        Returns:
+            GeneVocab: An instance of the GeneVocab class initialized with the data
+            from the file.
+    
+        Raises:
+            ValueError: If the file type is not .pkl or .json.
         """
         if isinstance(file_path, str):
             file_path = Path(file_path)
@@ -202,7 +216,7 @@ def map_raw_id_to_vocab_id(
     gene_ids: np.ndarray,
 ) -> Union[np.ndarray, torch.Tensor]:
     """
-    Map some raw ids which are indices of the raw gene names to the indices of the
+    Map some raw ids which are indices of the raw gene names to the indices of genes from the vocabulary
 
     Args:
         raw_ids: the raw ids to map
