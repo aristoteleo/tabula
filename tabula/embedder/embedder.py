@@ -6,7 +6,8 @@ from torch import Tensor
 class GeneEmbedder(nn.Module):
     """
     Embedder gene id
-    Parameters:
+    
+    Args:
         embedding_in_feature: int
             the len of vocab
         d_token: int
@@ -27,7 +28,8 @@ class GeneEmbedder(nn.Module):
 class ValueEmbedder(nn.Module):
     """
     Embedder expression value
-    Parameters:
+    
+    Args:
         in_feature: int
             the number of column(gene)
         d_token: int
@@ -46,6 +48,20 @@ class ValueEmbedder(nn.Module):
         self.enc_norm = nn.LayerNorm(d_token)
 
     def forward(self, x):
+        """
+        	1.	Input Shape:
+        	    •	x has shape (batch_size, in_feature) where in_feature represents the number of genes.
+        	2.	Broadcasting self.weight:
+            	•	self.weight has shape (in_feature, d_token).
+            	•	Adding None (or unsqueeze) at the beginning expands its shape to (1, in_feature, d_token).
+            	•	The result is broadcasted across the batch dimension.
+        	3.	Element-Wise Multiplication:
+            	•	The input x is reshaped to (batch_size, in_feature, 1) by adding an extra dimension at the end ([..., None]).
+            	•	Element-wise multiplication is performed:
+            	•	For each batch, x[i, j] (a scalar gene expression value) scales the corresponding row in the weight matrix: self.weight[j].
+        	4.	Result:
+        	    •	x now has shape (batch_size, in_feature, d_token), where each row is the weighted embedding of the gene expression values.
+     """
         x = self.weight[None] * x[..., None]
         if self.bias is not None:
             x += self.bias
