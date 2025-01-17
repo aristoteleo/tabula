@@ -56,6 +56,19 @@ class CorruptionGenerator:
 
         indices = torch.randint(
             high=batch_size, size=(batch_size, num_features))
+
+        """
+        1.	Broadcasting:
+        	•	torch.arange(num_features).unsqueeze(0) has shape (1, num_features).
+        	•	It is broadcasted to shape (batch_size, num_features) to match the shape of indices.
+    	2.	Resulting Tensor:
+        	•	For each pair (i, j):
+        	•	indices[i, j] specifies the row index.
+        	•	The broadcasted torch.arange(num_features).unsqueeze(0)[i, j] specifies the column index (always j).
+        	•	PyTorch fetches batch[indices[i, j], j].
+        
+        In the end, we corrupt the data for each gene following the marginal distribution of the gene across cells. 
+        """
         random_sample = batch[indices, torch.arange(
             num_features).unsqueeze(0)].clone().to(batch.device)
         batch = torch.where(corruption_mask, random_sample, batch)
