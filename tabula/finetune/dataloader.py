@@ -1,14 +1,13 @@
 import json
 import random
-
 random.seed(0)
 
 from typing import Optional, Union
 
 import numpy as np
 import torch
-from scgpt.tokenizer.gene_tokenizer import GeneVocab
 from tabula import logger
+from tabula.finetune.tokenizer import GeneVocab
 from torch.utils.data import Dataset
 
 
@@ -48,8 +47,7 @@ class CellAnnotationDataset(Dataset):
                  batch_strings,
                  x_umap,
                  in_feature,
-                 vocab_file,
-                 include_zero=False):
+                 vocab_file):
         self.expression_table = expression_table
         self.masked_expression_table = masked_expression_table
         self.gene_ids = gene_ids
@@ -58,7 +56,6 @@ class CellAnnotationDataset(Dataset):
         self.if_multi_batch = len(set(batch_strings)) > 1
         self.x_umap = x_umap
         self.in_feature = in_feature
-        self.include_zero = include_zero
         with open(vocab_file, 'r') as f:
             self.vocab = json.load(f)
 
@@ -66,10 +63,6 @@ class CellAnnotationDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, index):
-        """
-        TODO: do not exclude zero genes  for training
-        Match gene id to vocab and convert to token ids, pad to fixed length if necessary
-        """
         binned_x_values = self.expression_table[index]
         non_zero_indices = [i for i, value in enumerate(binned_x_values) if value != 0]
         # If not enough non-zero genes, supplement with zeros
