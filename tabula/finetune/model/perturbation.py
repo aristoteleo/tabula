@@ -77,7 +77,7 @@ class FinetuneModel(pl.LightningModule):
         val_loss = torch.stack(self.epoch_val_loss_list).mean()
         self.epoch_val_loss_list.clear()
         self.log('valid/total_loss', val_loss.item())
-        if val_loss.item() < self.best_val_loss:
+        if val_loss.item() < self.best_val_loss and self.current_epoch > 1:
             try:
                 self._eval_perturb(self.pert_data.dataloader["test_loader"])
             except Exception as e:
@@ -85,9 +85,6 @@ class FinetuneModel(pl.LightningModule):
                 pass
             for perts_to_plot_item in self.perts_to_plot:
                 self._plot_perturbation(query=perts_to_plot_item, pool_size=600)
-        elif self.current_epoch == 0:
-            self._eval_perturb(self.pert_data.dataloader["test_loader"])
-
         # save the best model
         if val_loss.item() < self.best_val_loss:
             self.best_val_loss = val_loss.item()
