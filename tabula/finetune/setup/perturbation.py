@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 import pytorch_lightning as pl
+from anndata import AnnData
 from gears import PertData
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import EarlyStopping
@@ -16,6 +17,7 @@ class GenePerturbationPrediction:
     """
     The class is used to perform gene expression under perturbation condition
     """
+
     def __init__(self,
                  config: FinetuneConfig,
                  pert_data: PertData,
@@ -45,8 +47,10 @@ class GenePerturbationPrediction:
             logger.info(f"Finetune method: {finetune_method}. Max epochs: {max_epochs}")
         elif finetune_method == 'heavy':
             max_epochs = self.config.get_finetune_param('max_epochs')
-            early_stopping_callback = EarlyStopping('valid/total_loss', patience=self.config.get_finetune_param('patience'))
-            logger.info(f"Finetune method: {finetune_method}. Max epochs: {max_epochs}. Patience: {early_stopping_callback.patience} ")
+            early_stopping_callback = EarlyStopping('valid/total_loss',
+                                                    patience=self.config.get_finetune_param('patience'))
+            logger.info(
+                f"Finetune method: {finetune_method}. Max epochs: {max_epochs}. Patience: {early_stopping_callback.patience} ")
         else:
             raise ValueError(f"Finetune method {finetune_method} not supported.")
 
@@ -69,9 +73,7 @@ class GenePerturbationPrediction:
         trainer = pl.Trainer(**trainer_args, logger=self.wandb_logger, gpus=[cuda_index])
 
         trainer.fit(model=self.pl_model,
-                    train_dataloaders=self.pert_data.dataloader["train_loader"], 
+                    train_dataloaders=self.pert_data.dataloader["train_loader"],
                     val_dataloaders=self.pert_data.dataloader["val_loader"]
                     )
         logger.info(f"Finetune finished.")
-
-

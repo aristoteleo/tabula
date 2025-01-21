@@ -57,7 +57,8 @@ def get_pretrained_model(finetune_config: FinetuneConfig = None,
         global_token=finetune_config.get_model_param('global_token'),
         pretrain_objective=finetune_config.get_finetune_param('objective'),
         enable_batch=finetune_config.get_finetune_param('enable_batch'),
-        n_batch=finetune_config.get_finetune_param('n_batch') if finetune_config.get_finetune_param('enable_batch') else 1,
+        n_batch=finetune_config.get_finetune_param('n_batch') if finetune_config.get_finetune_param(
+            'enable_batch') else 1,
         explicit_zero_prob=finetune_config.get_finetune_param('explicit_zero_prob'),
         do_mgm=finetune_config.get_finetune_param('do_mgm'),
         do_cmgm=finetune_config.get_finetune_param('do_cmgm'),
@@ -95,7 +96,7 @@ def get_pretrained_model(finetune_config: FinetuneConfig = None,
             logger.info(f"Loading params {k} with shape {v.shape}")
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
-        
+
         not_loaded = [k for k in model_dict if k not in pretrained_dict]
         if len(not_loaded) > 0:
             logger.info(f"Params not loaded: {not_loaded}")
@@ -146,6 +147,7 @@ class Preprocessor:
     Prepare data into training, valid and test split. Normalize raw expression
     values, binning or using other transform into the preset model input format.
     """
+
     def __init__(
             self,
             use_key: Optional[str] = None,

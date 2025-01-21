@@ -1,5 +1,6 @@
 import json
 import random
+
 random.seed(0)
 
 from typing import Optional, Union
@@ -103,7 +104,7 @@ class MultiOmicsDataset(Dataset):
                 self.vocab = json.load(f)
         else:
             self.vocab = vocab_file
-        
+
     def upper_case_iterator(self, vocab):
         new_vocab = {}
         for k, v in vocab.items():
@@ -113,7 +114,7 @@ class MultiOmicsDataset(Dataset):
             new_vocab[k] = v
         return new_vocab
 
-    def expand_vocab(self,  modality_string_list):
+    def expand_vocab(self, modality_string_list):
         """
         Expand the vocab of scRNA-seq to include other omics
 
@@ -140,7 +141,7 @@ class MultiOmicsDataset(Dataset):
 
         random.shuffle(non_zero_indices)
         genes = torch.tensor([self.vocab[self.gene_ids[i]] for i in non_zero_indices[:self.in_feature]],
-                              dtype=torch.int)
+                             dtype=torch.int)
         values = torch.tensor(mixed_values[non_zero_indices[:self.in_feature]], dtype=torch.float)
         label = torch.tensor(self.labels[index], dtype=torch.int)
         batch = torch.tensor(int(self.batch_id[index]), dtype=torch.int)
@@ -192,7 +193,7 @@ class ImputationDataset(Dataset):
         self.original_values = original_values
         self.masked_values = masked_values
         self.masked_positions = masked_positions
-        
+
         if isinstance(vocab_file, str):
             with open(vocab_file, 'r') as f:
                 self.vocab = json.load(f)
@@ -203,17 +204,17 @@ class ImputationDataset(Dataset):
         return len(self.original_values)
 
     def __getitem__(self, index):
-        
+
         genes = torch.tensor([self.vocab[self.gene_ids[i]] for i in range(len(self.gene_ids))], dtype=torch.int)
         original_values = torch.tensor(self.original_values[index], dtype=torch.float)
         masked_values = torch.tensor(self.masked_values[index], dtype=torch.float)
         masked_positions = torch.tensor(self.masked_positions[index], dtype=torch.bool)
-        
+
         return genes, original_values, masked_values, masked_positions
 
 
 class GrnDataset(Dataset):
-    def __init__(self, 
+    def __init__(self,
                  expression_table
                  ):
         self.expression_table = expression_table
@@ -224,4 +225,3 @@ class GrnDataset(Dataset):
     def __getitem__(self, idx):
         this_cell_expression = self.expression_table[idx].copy()
         return this_cell_expression
-    
