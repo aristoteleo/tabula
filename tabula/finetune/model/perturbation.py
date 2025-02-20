@@ -24,15 +24,32 @@ from tqdm import tqdm
 
 
 class FinetuneModel(pl.LightningModule):
-    def __init__(
-            self,
-            model: nn.Module,
-            config: FinetuneConfig,
-            save_path: Optional[str],
-            pert_data: Optional[PertData],
-            gene_ids: Optional[Union[List, np.ndarray]],
-            perts_to_plot: Optional[str],
-    ):
+    """
+    The class is used to train model for predicting gene expression under perturbation condition
+    """
+    def __init__(self,
+                 model: nn.Module,
+                 config: FinetuneConfig,
+                 save_path: Optional[str],
+                 pert_data: Optional[PertData],
+                 gene_ids: Optional[Union[List, np.ndarray]],
+                 perts_to_plot: Optional[str],
+                 ):
+        """
+        Parameters:
+            model: nn.Module
+                tabula model
+            config: FinetuneConfig
+                finetune configuration object
+            save_path: str
+                path to save the model and finetune analysis results
+            pert_data: PertData
+                perturbation data object
+            gene_ids: List
+                gene ids
+            perts_to_plot: List
+                perturbation conditions to plot for evaluation
+        """
         super(FinetuneModel, self).__init__()
         self.model = model
         self.config = config
@@ -53,27 +70,47 @@ class FinetuneModel(pl.LightningModule):
         self.perts_to_plot = perts_to_plot
 
     def configure_optimizers(self):
+        """
+        Lightening method to configure the optimizer
+        """
         optimizer = torch.optim.AdamW(self.parameters(),
                                       lr=self.config.get_finetune_param('learning_rate'),
                                       weight_decay=self.config.get_finetune_param('weight_decay'))
         return optimizer
 
     def training_step(self, batch, batch_idx):
+        """
+        Lightening method to perform training step
+        Calculate the mgm loss and log the loss
+        """
         _, loss = self._perturbation_forward(batch)
         self.log('train/mgm_loss', loss['mgm_loss'], on_step=True, on_epoch=True, prog_bar=True)
         return loss['mgm_loss']
 
     def on_train_epoch_end(self) -> None:
+        """
+        Lightening method to perform operations at the end of training epoch
+        Record learning rate at the end of each epoch
+        """
         for param_group in self.trainer.optimizers[0].param_groups:
             self.log('train/learning_rate', param_group['lr'])
 
     def validation_step(self, batch, batch_idx) -> None:
+        """
+        Lightening method to perform validation step
+        Calculate the mgm loss and log the loss
+        """
         _, loss = self._perturbation_forward(batch)
         self.epoch_val_loss_list.append(loss['mgm_loss'])
         loss = loss['mgm_loss']
         self.log('valid/mgm_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
 
     def on_validation_epoch_end(self) -> None:
+        """
+        Lightening method to perform operations at the end of validation epoch
+        1. Evaluate the model on test set and plot the perturbation conditions
+        2. Log the validation loss and save the best model
+        """
         val_loss = torch.stack(self.epoch_val_loss_list).mean()
         self.epoch_val_loss_list.clear()
         self.log('valid/total_loss', val_loss.item())
@@ -94,6 +131,14 @@ class FinetuneModel(pl.LightningModule):
             torch.save(self.model.state_dict(), f"{self.save_path}/best_model.pth")
 
     def _perturbation_forward(self, batch):
+        """
+        Forward pass for the model
+        Args:
+            batch: batch for every iteration
+        Returns:
+            output: model output
+            loss: loss value
+        """
         batch_size = len(batch.y)
         batch.to(self.device)
         x: torch.Tensor = batch.x  # (batch_size * n_genes, 2)
@@ -124,6 +169,12 @@ class FinetuneModel(pl.LightningModule):
     def _perturbation_predict(self, pert_list, pool_size=300):
         """
         Predict the gene expression values for the given perturbations.
+        Args:
+            pert_list: list of perturbation conditions to be predicted
+            pool_size: number of control samples to be used for prediction
+        Returns:
+            results_pred: predicted gene expression values after normalization
+            results_pred_original: predicted gene expression values before normalization
         """
         logger.info(f"Start predicting perturbation...")
         adata = self.pert_data.adata
@@ -177,6 +228,12 @@ class FinetuneModel(pl.LightningModule):
         return results_pred, results_pred_original
 
     def _plot_perturbation(self, query, pool_size: int = 600):
+        """
+        Plot the gene expression values for the given perturbation condition
+        Args:
+            query: perturbation condition to be plotted
+            pool_size: number of control samples to be used for prediction
+        """
         sns.set_theme(style="ticks", rc={"axes.facecolor": (0, 0, 0, 0)}, font_scale=1.5)
         adata = self.pert_data.adata
         gene2idx = self.pert_data.node_map
@@ -257,7 +314,9 @@ class FinetuneModel(pl.LightningModule):
 
     def _eval_perturb(self, loader: DataLoader):
         """
-        Run model in inference mode using a given data loader
+        Run model in inference mode using a given data loader and log the results
+        Args:
+            loader: data loader for evaluation
         """
         logger.info(f"Start evaluating perturbation...")
         pert_cat, pred, truth, pred_de, truth_de, results = [], [], [], [], [], {}

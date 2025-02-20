@@ -17,7 +17,6 @@ class GenePerturbationPrediction:
     """
     The class is used to perform gene expression under perturbation condition
     """
-
     def __init__(self,
                  config: FinetuneConfig,
                  pert_data: PertData,

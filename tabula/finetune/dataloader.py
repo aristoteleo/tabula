@@ -213,7 +213,7 @@ class ImputationDataset(Dataset):
         return genes, original_values, masked_values, masked_positions
 
 
-class GrnDataset(Dataset):
+class GRNDataset(Dataset):
     def __init__(self,
                  expression_table
                  ):
