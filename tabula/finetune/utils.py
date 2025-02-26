@@ -1,11 +1,10 @@
+import os
 from typing import Dict, Optional
 
 import numpy as np
-import os
 import scib
-from anndata import AnnData
-from tabula import logger
 import yaml
+from anndata import AnnData
 
 
 class FinetuneConfig:

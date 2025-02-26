@@ -76,12 +76,12 @@ class FeatureEmbedder(nn.Module):
     """
     def __init__(self, in_feature, embedding_in_feature, d_token=192):
         super().__init__()
-        self.gene_embedder = GeneEmbedder(embedding_in_feature, d_token)
-        self.value_embedder = ValueEmbedder(in_feature, d_token)
+        self.gene_encoder = GeneEmbedder(embedding_in_feature, d_token)
+        self.value_encoder = ValueEmbedder(in_feature, d_token)
 
     def forward(self, gene, value):
-        gene = self.gene_embedder(gene)
-        value = self.value_embedder(value)
+        gene = self.gene_encoder(gene)
+        value = self.value_encoder(value)
 
         x = gene + value
 

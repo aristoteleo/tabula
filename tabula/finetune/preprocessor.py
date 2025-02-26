@@ -1,9 +1,7 @@
 import json
 from typing import Dict, Optional, Union
 
-import anndata as ad
 import numpy as np
-import pandas as pd
 import scanpy as sc
 import torch
 from anndata import AnnData
@@ -11,20 +9,17 @@ from pytorch_lightning.callbacks import EarlyStopping
 from scanpy.get import _get_obs_rep, _set_obs_rep
 from scipy.sparse import issparse
 from tabula import logger
+from tabula.finetune.utils import FinetuneConfig
 from tabula.model.transfomer.transformer import TabulaTransformer
-from tabula.task.utils import FinetuneConfig
 
 
 def get_pretrained_model(finetune_config: FinetuneConfig = None,
-                         enable_batch: bool = False,
                          model_path: str = None,
-                         device: str = 'cpu',
-                         num_batches: Optional[int] = 1):
+                         device: str = 'cpu'):
     """
     Get the pretrained model for downstrean tasks.
     Args:
         finetune_config: FinetuneConfig
-        enable_batch: bool
         model_path: str
         device: str
         num_batches: int
@@ -61,8 +56,9 @@ def get_pretrained_model(finetune_config: FinetuneConfig = None,
         pre_normalization=finetune_config.get_model_param('pre_normalization'),
         global_token=finetune_config.get_model_param('global_token'),
         pretrain_objective=finetune_config.get_finetune_param('objective'),
-        enable_batch=enable_batch,
-        n_batch=num_batches,
+        enable_batch=finetune_config.get_finetune_param('enable_batch'),
+        n_batch=finetune_config.get_finetune_param('n_batch') if finetune_config.get_finetune_param(
+            'enable_batch') else 1,
         explicit_zero_prob=finetune_config.get_finetune_param('explicit_zero_prob'),
         do_mgm=finetune_config.get_finetune_param('do_mgm'),
         do_cmgm=finetune_config.get_finetune_param('do_cmgm'),
@@ -101,7 +97,6 @@ def get_pretrained_model(finetune_config: FinetuneConfig = None,
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
 
-        # print out the params that are not loaded
         not_loaded = [k for k in model_dict if k not in pretrained_dict]
         if len(not_loaded) > 0:
             logger.info(f"Params not loaded: {not_loaded}")
@@ -152,6 +147,7 @@ class Preprocessor:
     Prepare data into training, valid and test split. Normalize raw expression
     values, binning or using other transform into the preset model input format.
     """
+
     def __init__(
             self,
             use_key: Optional[str] = None,
@@ -468,7 +464,8 @@ def get_ft_training_args(finetune_config: FinetuneConfig) -> Dict:
         'max_epochs': max_epochs,
         'callbacks': [early_stopping_callback_func] if finetune_method == 'heavy' else None,
         'default_root_dir': finetune_config.get_finetune_param('save_folder'),
-        'gradient_clip_val': finetune_config.get_finetune_param('gradient_clip_val'),
+        # 'gradient_clip_val': finetune_config.get_finetune_param('gradient_clip_val'),
+        'precision': 16
     }
 
     return training_args

@@ -17,6 +17,7 @@ from tabula import logger
 
 LABEL = "label"
 
+
 class AppendCLS(nn.Module):
     """
     Append <cls> token to the end of sequenece.
