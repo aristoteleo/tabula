@@ -1,7 +1,12 @@
 import io
 from typing import List, Optional, Union
+import pickle
+import itertools
+import faiss
+
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -32,8 +37,10 @@ class FinetuneModel(pl.LightningModule):
                  config: FinetuneConfig,
                  save_path: Optional[str],
                  pert_data: Optional[PertData],
+                 pert_data_eval: Optional[PertData],
                  gene_ids: Optional[Union[List, np.ndarray]],
                  perts_to_plot: Optional[str],
+                 reverse_perturb: bool = False,
                  ):
         """
         Parameters:
@@ -59,15 +66,18 @@ class FinetuneModel(pl.LightningModule):
         self.do_cmgm = self.config.get_finetune_param('do_cmgm')
         self.amp = self.config.get_finetune_param('amp')
         self.if_wandb = self.config.get_finetune_param('if_wandb')
+        self.reverse_perturb = reverse_perturb
 
         self.criterion_masked_mse = masked_mse_loss
 
         self.epoch_val_loss_list = []
         self.best_val_loss = float('inf')
         self.pert_data = pert_data
+        self.pert_data_eval = pert_data_eval
         self.gene_ids = gene_ids
         self.n_genes = len(gene_ids)
         self.perts_to_plot = perts_to_plot
+        self.best_model = self.model
 
     def configure_optimizers(self):
         """
@@ -114,7 +124,7 @@ class FinetuneModel(pl.LightningModule):
         val_loss = torch.stack(self.epoch_val_loss_list).mean()
         self.epoch_val_loss_list.clear()
         self.log('valid/total_loss', val_loss.item())
-        if val_loss.item() < self.best_val_loss:
+        if val_loss.item() < self.best_val_loss and not self.reverse_perturb:
             try:
                 self._eval_perturb(self.pert_data.dataloader["test_loader"])
             except Exception as e:
@@ -122,11 +132,12 @@ class FinetuneModel(pl.LightningModule):
                 pass
             for perts_to_plot_item in self.perts_to_plot:
                 self._plot_perturbation(query=perts_to_plot_item, pool_size=600)
-        elif self.current_epoch == 0:
+        elif self.current_epoch == 0 and not self.reverse_perturb:
             self._eval_perturb(self.pert_data.dataloader["test_loader"])
 
         # save the best model
         if val_loss.item() < self.best_val_loss:
+            self.best_model = self.model
             self.best_val_loss = val_loss.item()
             torch.save(self.model.state_dict(), f"{self.save_path}/best_model.pth")
 
@@ -192,8 +203,8 @@ class FinetuneModel(pl.LightningModule):
             results_pred = {}
             results_pred_original = {}
             for pert in pert_list:
-                cell_graphs = create_cell_graph_dataset_for_prediction(pert, ctrl_adata, gene_list, device,
-                                                                       num_samples=pool_size)
+                cell_graphs = create_cell_graph_dataset_for_prediction(
+                    pert, ctrl_adata, gene_list, device, num_samples=pool_size)
                 loader = DataLoader(cell_graphs, batch_size=64, shuffle=False)
                 preds = []
 
@@ -378,3 +389,204 @@ class FinetuneModel(pl.LightningModule):
                     logger.info("test_" + name + "_" + m + ": " + str(subgroup_analysis[name][m]))
                     if self.if_wandb:
                         wandb.log({"test/" + name + "_" + m: subgroup_analysis[name][m]})
+
+    def on_train_end(self) -> None:
+        """
+        Evalute reverse perturbation on test set and log the results.
+        Referring to scGPT: https://github.com/bowang-lab/scGPT
+        """
+        if not self.reverse_perturb:
+            return
+        
+        logger.info(f"Start evaluating reverse perturbation...")
+        pert_data_ = self.pert_data_eval
+
+        try:
+            np.unique(pert_data_.adata.obs['split'].values)
+        except:
+            pert_data_.adata.obs['split'] = ''
+            pert_data_.adata.obs.loc[pert_data_.adata.obs['condition'].isin(pert_data_.set2conditions["train"]), 'split'] = 'train'
+            pert_data_.adata.obs.loc[pert_data_.adata.obs['condition'].isin(pert_data_.set2conditions["val"]), 'split'] = 'val' #'test' 
+            pert_data_.adata.obs.loc[pert_data_.adata.obs['condition'].isin(pert_data_.set2conditions["test"]), 'split'] = 'test' #'ood' #'test'
+            assert len(np.unique(pert_data_.adata.obs['split'].values)) == 3
+
+        test_groups = pert_data_.subgroup["test_subgroup"].copy()
+
+        test_gene_list = []
+        for i in test_groups.keys():
+            for g in test_groups[i]:
+                if g.split('+')[0] != 'ctrl':
+                    test_gene_list.append(g.split('+')[0])
+                if g.split('+')[1] != 'ctrl':
+                    test_gene_list.append(g.split('+')[1])
+        test_gene_list = list(set(test_gene_list))
+
+        df = pd.DataFrame(np.zeros((len(test_gene_list), len(test_gene_list))), columns = test_gene_list, index = test_gene_list)
+        train_condition_list = pert_data_.adata.obs[pert_data_.adata.obs.split=='train'].condition.values
+        valid_condition_list = pert_data_.adata.obs[pert_data_.adata.obs.split=='val'].condition.values
+        test_condition_list = pert_data_.adata.obs[pert_data_.adata.obs.split=='test'].condition.values
+
+        def update_df(df, condition_list, label):
+            for i in condition_list:
+                if i != 'ctrl':
+                    g0 = i.split('+')[0]
+                    g1 = i.split('+')[1]
+                    if g0 == 'ctrl' and g1 in test_gene_list:
+                        df.loc[g1, g1] = label
+                    elif g1 == 'ctrl' and g1 in test_gene_list:
+                        df.loc[g0, g0] = label
+                    elif g0 in test_gene_list and g1 in test_gene_list:
+                        df.loc[g0, g1] = label
+                        df.loc[g1, g0] = label
+            
+        update_df(df, train_condition_list, 'Train')
+        update_df(df, valid_condition_list, 'Valid')
+        update_df(df, test_condition_list, 'Test')
+        
+        df = df.replace({0:'Unseen'})
+        sub_gene_list = list(set(df[(df=='Train').sum(0)>0].index).intersection(df[(df=='Test').sum(0)>0].index))
+        sub_test_gene_list = ((df.loc[:, sub_gene_list]=='Train').sum(0)+(df.loc[:, sub_gene_list]=='Test').sum(0)).sort_values()[-20:].index
+        sub_df = df.loc[sub_test_gene_list, sub_test_gene_list]
+        df = df.loc[np.sort(sub_df.index), np.sort(sub_df.index)]
+        df.to_csv(f"{self.save_path}/perturbation_matrix.csv")
+
+        plt.figure(figsize=(11, 10))
+        value_to_int = {j:i for i,j in enumerate(['Unseen', 'Train', 'Valid', 'Test'])}
+        n = len(value_to_int)   
+        cmap = sns.color_palette("light:slateblue", as_cmap=True)
+        matrix = np.triu(df.values, 1)
+        ax = sns.heatmap(df.replace(value_to_int), cmap=mpl.colors.ListedColormap(cmap(np.linspace(0, 1, 4))), linewidths=0.05, mask=matrix) 
+        ax.tick_params(axis='y', rotation=0)
+        ax.tick_params(axis='x', rotation=90)
+        colorbar = ax.collections[0].colorbar 
+        r = colorbar.vmax - colorbar.vmin 
+        colorbar.set_ticks([colorbar.vmin + r / n * (0.5 + i) for i in range(n)])
+        colorbar.set_ticklabels(list(value_to_int.keys())) 
+        plt.savefig(f"{self.save_path}/perturbation_matrix.png", dpi=600)
+
+        test_gene_list = df.index.tolist()
+        train_num = (df.mask(~np.triu(np.ones(df.shape, dtype=np.bool_)))=='Train').sum().sum()
+        valid_num = (df.mask(~np.triu(np.ones(df.shape, dtype=np.bool_)))=='Valid').sum().sum()
+        test_num = (df.mask(~np.triu(np.ones(df.shape, dtype=np.bool_)))=='Test').sum().sum()
+        total_num = df.shape[0]**2-(df.mask(~np.triu(np.ones(df.shape, dtype=np.bool_))).isnull()).sum().sum()
+        print('{}/{} train conditions, {}/{} valid conditions, and {}/{} test conditions.'.format(train_num, total_num, valid_num, total_num, test_num, total_num))
+
+        # Predict the gene expression values for the given perturbations self._perturbation_predict()
+        pert_list = []
+        for comb in itertools.combinations(test_gene_list + ['ctrl'], 2):
+            if comb[0] == 'ctrl':
+                pert_list.append([comb[1]])
+            elif comb[1] == 'ctrl':
+                pert_list.append([comb[0]])
+            else:
+                pert_list.append([comb[0], comb[1]])
+            
+        self.model = self.best_model
+        _, results_pred = self._perturbation_predict(pert_list, 
+                                                     pool_size=300)
+        results_pred_np = []
+        for p in results_pred.keys():
+            results_pred_np.append(np.expand_dims(results_pred[p], 0))
+        results_pred_np = np.concatenate(results_pred_np)
+
+        M = results_pred_np.shape[-1]
+        results_pred_np = results_pred_np.reshape(-1, M)
+
+        xb = results_pred_np
+        d = xb.shape[1]
+        index = faiss.IndexFlatL2(d)   # build the index, d=size of vectors 
+        index.add(xb) # add
+
+        sub_test_condition_list = []
+        for c in np.unique(test_condition_list):
+            g0 = c.split('+')[0]
+            g1 = c.split('+')[1]
+            if g0 == 'ctrl' and g1 in test_gene_list:
+                sub_test_condition_list.append(c)
+            elif g1 == 'ctrl' and g0 in test_gene_list:
+                sub_test_condition_list.append(c)
+            elif g0 in test_gene_list and g1 in test_gene_list:
+                sub_test_condition_list.append(c)
+            
+        q_list = []
+        ground_truth = []
+        for c in tqdm(sub_test_condition_list):
+            g0 = c.split('+')[0]
+            g1 = c.split('+')[1]
+            if g0 == 'ctrl':
+                temp = [g1]
+                temp1 = [g1]
+            elif g1 == 'ctrl':
+                temp = [g0]
+                temp1 = [g0]
+            else:
+                temp = [g0, g1]
+                temp1 = [g1, g0]
+                if temp in pert_list or temp1 in pert_list:
+                    sub = pert_data_.adata[pert_data_.adata.obs.split=='test']
+                    sub = sub[sub.obs.condition==c]
+                    #q_list.append(sub.X.todense().mean(0))
+                    q_list.append(sub.X.todense())
+                    if g0<g1:
+                        ground_truth.extend([c]*sub.X.todense().shape[0])
+                    else:
+                        ground_truth.extend(['+'.join([g1, g0])]*sub.X.todense().shape[0])
+
+        xq = np.concatenate(q_list)
+        metrics_to_log, genes_hit_to_log = {}, {}
+        for k in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
+            genes_hit_to_log['Top {}'.format(k)] = {}
+            print(f'Processing top {k}')
+            D, I = index.search(xq, k)
+            df = pd.DataFrame(I)
+            ind_list = []
+            condition_list = []
+            ind = 0
+            for i in results_pred.keys():
+                for j in range(results_pred[i].shape[0]):
+                    ind_list.append(ind)
+                    condition_list.append(i)
+                    ind += 1
+            index_to_condition = dict(zip(ind_list, condition_list))
+            df = df.replace(index_to_condition)
+            df['ground_truth'] = ground_truth
+            ground_truth_short = []
+            aggr_pred = []
+            for i in np.unique(ground_truth):
+                values = df[df.ground_truth==i].loc[:, list(range(k))].values.flatten()
+                unique, counts = np.unique(values, return_counts=True)
+                ind = np.argpartition(-counts, kth=k)[:k]
+                aggr_pred.append(np.expand_dims(unique[ind], 0))
+                ground_truth_short.append(i)
+            df_aggr = pd.DataFrame(np.concatenate(aggr_pred))
+            df_aggr['ground_truth'] = ground_truth_short
+            pred = df_aggr.values[:, :k]
+            truth = df_aggr.values[:, -1]
+            count = 0
+            for i in range(len(truth)):
+                g0 = truth[i].split('+')[0]
+                g1 = truth[i].split('+')[1]
+                truth0 = '_'.join([g0, g1])
+                truth1 = '_'.join([g1, g0])
+                if truth0 in pred[i, :] or truth1 in pred[i, :]:
+                    genes_hit_to_log['Top {}'.format(k)][truth0] = pred[i, :]
+                    count+=1
+            metrics_to_log["Top {} 2/2".format(k)] = count
+            count = 0
+            for i in range(len(truth)):
+                g0 = truth[i].split('+')[0]
+                g1 = truth[i].split('+')[1]
+                truth0 = '_'.join([g0, g1])
+                truth1 = '_'.join([g1, g0])
+                found_one = False
+                for j in pred[i, :]:
+                    if not found_one and (g0 in j or g1 in j):
+                        found_one = True
+                        count += 1
+            metrics_to_log["Top {} 1/2".format(k)] = count
+            
+            with open(f"{self.save_path}/metrics_to_log.pkl", 'wb') as f:
+                pickle.dump(metrics_to_log, f)
+            with open(f"{self.save_path}/genes_hit_to_log.pkl", 'wb') as f:
+                pickle.dump(genes_hit_to_log, f)
+            logger.info(f'Save metrics to log and genes hit to log to {self.save_path}')

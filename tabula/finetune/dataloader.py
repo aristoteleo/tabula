@@ -211,17 +211,3 @@ class ImputationDataset(Dataset):
         masked_positions = torch.tensor(self.masked_positions[index], dtype=torch.bool)
 
         return genes, original_values, masked_values, masked_positions
-
-
-class GRNDataset(Dataset):
-    def __init__(self,
-                 expression_table
-                 ):
-        self.expression_table = expression_table
-
-    def __len__(self):
-        return self.expression_table.shape[0]
-
-    def __getitem__(self, idx):
-        this_cell_expression = self.expression_table[idx].copy()
-        return this_cell_expression

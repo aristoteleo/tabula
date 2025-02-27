@@ -25,7 +25,9 @@ class GenePerturbationPrediction:
                  device: str,
                  batch_size: int,
                  gene_ids: Optional[Union[List, np.ndarray]],
-                 perts_to_plot: Optional[List]
+                 perts_to_plot: Optional[List] = None,
+                 reverse_perturb: bool = False,
+                 pert_data_eval: PertData = None,
                  ):
         self.config = config
         self.tabula_model = tabula_model
@@ -35,10 +37,15 @@ class GenePerturbationPrediction:
         Path(self.save_path).mkdir(parents=True, exist_ok=True)
         self.batch_size = batch_size
         self.pert_data = pert_data
+        self.pert_data_eval = pert_data_eval
         self.gene_ids = gene_ids
         self.perts_to_plot = perts_to_plot
+        self.reverse_perturb = reverse_perturb
 
     def finetune(self):
+        """
+        Finetune the tabula model for perturbation prediction task
+        """
         seed_everything(self.config.seed)
         finetune_method = self.config.get_finetune_param('method')
         if finetune_method == 'light':
@@ -57,9 +64,11 @@ class GenePerturbationPrediction:
             model=self.tabula_model,
             save_path=self.save_path,
             pert_data=self.pert_data,
+            pert_data_eval=self.pert_data_eval,
             gene_ids=self.gene_ids,
             perts_to_plot=self.perts_to_plot,
             config=self.config,
+            reverse_perturb=self.reverse_perturb
         ).to(self.device)
 
         trainer_args = {
