@@ -208,7 +208,7 @@ class FinetuneModel(pl.LightningModule):
                 loader = DataLoader(cell_graphs, batch_size=64, shuffle=False)
                 preds = []
 
-                for batch_data in tqdm(loader):
+                for batch_data in loader:
                     batch_data.to(device)
                     batch_size = len(batch_data.pert)
                     x: torch.Tensor = batch_data.x
@@ -331,7 +331,7 @@ class FinetuneModel(pl.LightningModule):
         """
         logger.info(f"Start evaluating perturbation...")
         pert_cat, pred, truth, pred_de, truth_de, results = [], [], [], [], [], {}
-        for itr, batch in tqdm(enumerate(loader), total=len(loader)):
+        for itr, batch in enumerate(loader):
             batch.to(self.device)
             pert_cat.extend(batch.pert)
             with torch.no_grad():
