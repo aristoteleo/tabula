@@ -66,7 +66,6 @@ class FinetuneModel(pl.LightningModule):
         self.val_loss_list = []
         self.best_val_loss = float('inf')
 
-
     def configure_optimizers(self):
         """
         Lightening method to configure the optimizer
@@ -75,8 +74,7 @@ class FinetuneModel(pl.LightningModule):
                                       lr=self.config.get_finetune_param('learning_rate'),
                                       weight_decay=self.config.get_finetune_param('weight_decay'))
         return optimizer
-    
-    
+
     def training_step(self, batch, batch_idx):
         """
         Lightening method to perform training step
