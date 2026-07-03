@@ -1,3 +1,4 @@
+# logger setup for Tabula
 import logging
 import sys
 
