@@ -103,6 +103,9 @@ stdlib-list==0.10.0
 threadpoolctl==3.2.0
 tiledb==0.22.3
 timm==0.9.6
+torch==1.13.1
+torchvision==0.14.1
+torchaudio==0.13.1
 torchmetrics==1.2.0
 tqdm==4.66.1
 traitlets==5.13.0

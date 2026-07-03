@@ -1,3 +1,11 @@
+# checkpoints / model weights
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.h5
+*.safetensors
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -3,7 +3,7 @@
 ## **Preprint**
 Toward a privacy-preserving predictive foundation model of single-cell transcriptomics with federated learning and tabular modeling
 
-Jiayuan Ding, Jianhui Lin, Shiyu Jiang, Yixin Wang, Ziyang Miao, Zhaoyu Fang, Jiliang Tang, Min Li, Xiaojie Qiu
+Jiayuan Ding$*, Jianhui Lin$, Ziyang Miao$, Nils Mechtel$, Shiyu Jiang, Yixin Wang, Zhaoyu Fang, Jorge D. Martin-Rufino, Chen Weng, Reuben Saunders, Weize Xu, Jonathan S. Weissman, Min Li*, Jiliang Tang*, Wei Ouyang*, Yuancheng Ryan Lu*, Xiaojie Qiu*
 
 https://www.biorxiv.org/content/10.1101/2025.01.06.631427v1
 
