@@ -1,3 +1,4 @@
+# This YAML configuration is used for both perturbation and reverse perturbation tasks.
 Model:
   # tokenizer
   padding_id: 60694     # the <pad> id in vocab (60694)
