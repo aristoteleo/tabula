@@ -1,11 +1,10 @@
 # **Tabula**
 
 ## **Preprint**
-Toward a privacy-preserving predictive foundation model of single-cell transcriptomics with federated learning and tabular modeling
+Predictive single cell foundation model for gene regulation and aging with privacy-preserving tabular learning
 
 Jiayuan Ding, Jianhui Lin, Ziyang Miao, Nils Mechtel, Shiyu Jiang, Yixin Wang, Zhaoyu Fang, Jorge D. Martin-Rufino, Chen Weng, Reuben Saunders, Weize Xu, Jonathan S. Weissman, Min Li, Jiliang Tang, Wei Ouyang, Yuancheng Ryan Lu, Xiaojie Qiu
 
-https://www.biorxiv.org/content/10.1101/2025.01.06.631427v1
 
 ## **Overview**
 A privacy-preserving predictive foundation model for single-cell transcriptomics, leveraging federated learning and tabular modeling.
@@ -98,7 +97,7 @@ $ pre-commit run --all-files
 Then, all future commits will call `black` automatically to format the code. Any code that does not follow the standard will cause a check to fail.
 
 ## **Contact**
-For questions, feedback, or collaboration opportunities, please contact Xiaojie Qiu at xiaojie@stanford.edu and Jiayuan Ding at jiayuand@usc.edu.
+For questions, feedback, or collaboration opportunities, please contact Xiaojie Qiu at xiaojie@stanford.edu and Jiayuan Ding at jiayuandingjsnu@gmail.com.
 
 
 
