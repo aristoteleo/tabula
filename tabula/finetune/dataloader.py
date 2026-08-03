@@ -181,6 +181,20 @@ class GenePerturbationDataset(Dataset):
         return genes, perturbed_values, target_values
 
 
+class GRNDataset(Dataset):
+    def __init__(self, 
+                 expression_table
+                 ):
+        self.expression_table = expression_table
+
+    def __len__(self):
+        return self.expression_table.shape[0]
+
+    def __getitem__(self, idx):
+        this_cell_expression = self.expression_table[idx].copy()
+        return this_cell_expression
+    
+
 class ImputationDataset(Dataset):
     def __init__(self,
                  gene_ids: list,
